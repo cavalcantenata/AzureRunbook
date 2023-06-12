@@ -1,0 +1,29 @@
+#runbook bellow
+param (
+    [Parameter (Mandatory = $true)] 
+    [object]$UserPrincipalname
+)
+
+#getting credentials from automation account vault
+$myCredential = Get-AutomationPSCredential -Name 'ResetPassUser'
+$userName = $myCredential.UserName
+$Password = $myCredential.Password
+
+#using recovered credentials to connect on the session
+$psCred = New-Object System.Management.Automation.PSCredential -ArgumentList ($userName, $Password)
+
+#connecting using credentials
+Connect-MSolService -Credential $psCred
+
+# Set the new password
+$newpwd = -join (33..126|%{[char]$_}|Get-Random -Count 50)
+
+# Reset user password.
+Set-MsolUserPassword -UserPrincipalName $UserPrincipalName -NewPassword $newpwd -ForceChangePassword $true | out-null
+
+$objOut = [PSCustomObject]@{
+'EmailAddress' = $UserPrincipalName
+'Password' = $newpwd
+}
+
+Write-Output ( $objOut | ConvertTo-Json)
